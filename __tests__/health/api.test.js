@@ -28,4 +28,13 @@ describe('Suite de Testes de Saúde da API', () => {
             expect([200, 401, 400]).toContain(response.status); // Aceita 200, 401 (não autorizado) ou 400 (bad request)
         }
     });
+
+    test('Deve retornar erro 413 quando o payload exceder o tamanho máximo permitido', async () => {
+        // Cria um payload que excede o limite (exemplo: 2 MB de dados)
+        const largePayload = 'A'.repeat(2 * 1024 * 1024); // Ajuste o tamanho conforme o limite configurado na API
+
+        const response = await api.post('/auth/login', { data: largePayload });
+
+        expect(response.status).toBe(413); // Verifica se o status é 413 Payload Too Large
+    });
 });

@@ -13,7 +13,7 @@ describe('Suite de Testes de Integração - Usuários', () => {
 
     beforeAll(async () => {
         testUser = {
-            name: `Test User ${uuidv4().slice(0, 8)}`,
+            name: `Test User`,
             email: `test.${uuidv4().slice(0, 8)}@example.com`,
             password: 'Test@123'
         };
@@ -36,14 +36,34 @@ describe('Suite de Testes de Integração - Usuários', () => {
             expect(response.data.message).toBe('Email já cadastrado');
         });
 
+        test('Não deve criar usuário, que contenha caracteres inválidos no nome', async () => {
+            const response = await api.post('/users',
+                { ...testUser, name: 'R@ch1d', email: 'another@email.com' }
+            );
+            expect(response.status).toBe(400);
+            expect(response.data.message).toBe('O nome contém caracteres não permitidos');
+        });
+
+        test('Não deve criar usuário, que ultrapasse o limite máximo de 30 caracteres', async () => {
+            const response = await api.post('/users',
+                {
+                    ...testUser,
+                    name: 'RaxasRaxasRaxasRaxasRaxasRaxasRaxasRaxasRaxasRaxasRaxasRaxasRaxasRaxasRaxasRaxas',
+                    email: 'another@email.com'
+                }
+            );
+            expect(response.status).toBe(400);
+            expect(response.data.message).toBe('O nome deve ter no máximo 30 caracteres');
+        });
+
         test('Não deve criar usuário com dados inválidos', async () => {
             const invalidUsers = [
-                { 
-                    ...testUser, 
+                {
+                    ...testUser,
                     email: 'invalid-email',
                     password: '123' // senha muito curta
                 },
-                { 
+                {
                     ...testUser,
                     name: '', // nome vazio
                     email: 'another@email.com'
@@ -56,6 +76,19 @@ describe('Suite de Testes de Integração - Usuários', () => {
                 expect(response.status).toBe(400);
                 expect(response.data).toHaveProperty('errors');
             }
+        });
+
+        test('Deve criar usuário que tenha o nome dentro do limite de 30 caracteres.', async () => {
+            const validName = 'a'.repeat(29);
+            const response = await api.post('/users',
+                {
+                    ...testUser,
+                    name: validName,
+                    email: 'mematadeumavez@porfavor.com',
+                }
+            );
+
+            expect(response.status).toBe(201);
         });
 
         test('Deve fazer login com sucesso', async () => {
@@ -82,7 +115,7 @@ describe('Suite de Testes de Integração - Usuários', () => {
                 expect([400, 401]).toContain(response.status);
 
                 expect(
-                    response.data.hasOwnProperty('message') || 
+                    response.data.hasOwnProperty('message') ||
                     response.data.hasOwnProperty('errors')
                 ).toBeTruthy();
             }
@@ -105,7 +138,7 @@ describe('Suite de Testes de Integração - Usuários', () => {
             const response = await api.get(`/users/invalid-id`, {
                 headers: { Authorization: `Bearer ${authToken}` }
             });
-            
+
             expect(response.status).toBe(404);
         });
 
@@ -117,7 +150,7 @@ describe('Suite de Testes de Integração - Usuários', () => {
             expect(response.status).toBe(200);
             expect(Array.isArray(response.data)).toBe(true);
             expect(response.data.length).toBeGreaterThan(0);
-            
+
             const foundUser = response.data.find(u => u.id === testUser.id);
             expect(foundUser).toBeTruthy();
             expect(foundUser.name).toBe(testUser.name);
@@ -137,7 +170,7 @@ describe('Suite de Testes de Integração - Usuários', () => {
             expect(response.status).toBe(200);
             expect(response.data.name).toBe(updateData.name);
             expect(response.data.email).toBe(testUser.email);
-            
+
             // Verificar se a atualização persistiu
             const checkResponse = await api.get(`/users/${testUser.id}`, {
                 headers: { Authorization: `Bearer ${authToken}` }
@@ -159,9 +192,9 @@ describe('Suite de Testes de Integração - Usuários', () => {
 
             for (const invalidUpdate of invalidUpdates) {
                 const updateResponse = await api.put(
-                    `/users/${testUser.id}`, 
+                    `/users/${testUser.id}`,
                     invalidUpdate,
-                    { headers: { Authorization: `Bearer ${authToken}` }}
+                    { headers: { Authorization: `Bearer ${authToken}` } }
                 );
 
                 // Verifica o estado atual do usuário após a tentativa de atualização
@@ -173,7 +206,7 @@ describe('Suite de Testes de Integração - Usuários', () => {
                 if (updateResponse.status === 200) {
                     console.log('Update response:', updateResponse.data);
                     console.log('Current user state:', currentUser);
-                    
+
                     if (invalidUpdate.email) {
                         // O email deve permanecer o mesmo do original
                         expect(currentUser.email).toBe(originalUser.email);
@@ -186,7 +219,7 @@ describe('Suite de Testes de Integração - Usuários', () => {
                     // Se a API rejeitou a atualização, deve ser com status 400
                     expect(updateResponse.status).toBe(400);
                     expect(
-                        updateResponse.data.hasOwnProperty('message') || 
+                        updateResponse.data.hasOwnProperty('message') ||
                         updateResponse.data.hasOwnProperty('errors')
                     ).toBeTruthy();
 
@@ -215,7 +248,7 @@ describe('Suite de Testes de Integração - Usuários', () => {
             const deleteResponse = await api.delete(`/users/${invalidId}`, {
                 headers: { Authorization: `Bearer ${authToken}` }
             });
-            
+
             if (deleteResponse.status === 204) {
                 const checkResponse = await api.get(`/users/${invalidId}`, {
                     headers: { Authorization: `Bearer ${authToken}` }
@@ -273,14 +306,14 @@ describe('Suite de Testes de Integração - Usuários', () => {
     describe('6. Testes de Performance', () => {
         test('Deve responder requisiçsõe em menos de 200ms', async () => {
             const startTime = Date.now();
-            
+
             await api.get('/users', {
                 headers: { Authorization: `Bearer ${authToken}` }
             });
-            
+
             const endTime = Date.now();
             const responseTime = endTime - startTime;
-            
+
             expect(responseTime).toBeLessThan(200);
         });
     });

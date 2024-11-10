@@ -12,6 +12,15 @@ class UserService {
             throw new Error('Email já cadastrado');
         }
 
+        const nameRegex = /^[a-zA-Z\s]+$/;
+        if (!nameRegex.test(userData.name)) {
+            throw new Error('O nome contém caracteres não permitidos');
+        }
+
+        if (userData.name.length > 30) {
+            throw new Error('O nome deve ter no máximo 30 caracteres');
+        }
+
         const user = {
             id: uuidv4(),
             name: userData.name,
